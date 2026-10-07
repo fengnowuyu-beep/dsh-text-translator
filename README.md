@@ -229,3 +229,44 @@ node tools/measure-granularity.mjs    # 各粒度档位的取舍曲线
 - **Host 半边改代码要重启**（见上）。
 - **路由只服务 loopback**。本机 GUI 正常；通过 remote-web-ui 从其它设备访问时，翻译路由会被栅栏拒绝（浏览器半边会提示 Host 半边未重启或路由不可用）。
 - API Key 以明文存在 `settings.json`（本机文件，和 DSH 其它本地设置同级）；「显示明文」按钮走的是同一条 loopback 栅栏。
+
+---
+
+## 工作区与版本管理
+
+本目录现在既是**一个独立的 git 仓库**，也是 DSH 里**一个独立的工作区**。
+
+- **git**：`.git` 就在本目录里，分支 `main`，初始提交即 1.5.0。
+- `.gitattributes` 里写了 `* -text`：插件的源码会被按字节读取（样式表测试、asar 与预览工具都比对精确字符串），所以 git 绝不能在检出时改写换行。
+- **工作区**：在 `%DSH_HOME%/storages/workspace.json` 里注册了 `dsh-text-manager`，path 指向本目录。
+- **把一个已有对话搬进本工作区**：
+
+  ```powershell
+  node tools/move-session.mjs --dry-run   # 只检查，不写盘
+  # 完全退出 DeepSeek Harness，然后：
+  node tools/move-session.mjs
+  ```
+
+### 为什么搬对话必须先退出应用
+
+DSH **没有**「移动会话」这个操作。一个会话属于哪个工作区取决于它**自己头部记录的 `cwd`**（`dsh-workspace` 的成员资格是「只读头部」来验证的），而 `dsh-session-persistence-jsonl` 又**用同一个 `cwd` 推导日志路径**：
+
+```text
+<DSH_HOME>/sessions/<编码后的 cwd>/<会话 id>/session.v4.jsonl.zstd
+```
+
+所以「搬走」必须让三件事同时成立：改写头部帧里的 `cwd`、把会话目录挪到新的项目目录、在两个工作区记录之间移动会话 id。
+
+而**应用运行中做这件事是危险的**：它在内存里持有旧的 header，每次追加事件都会**重新推导路径**（`resolveCurrentLog`），所以热搬会让新位置那份被冻住，事件继续写进旧路径 —— 历史被劈成两半。脚本因此在检测到 DeepSeek Harness 进程时直接拒绝运行。
+
+### 脚本的安全设计
+
+- 新文件**先写、后完整校验**（每一帧都能解压、每一行 JSON 都能解析、帧数与事件数与原文逐个相等），全部通过才删除原件。
+- 头部帧的编码格式会先与产物里的写入器比对（`FHD` 必须一致，含 checksum 标志），再动手。
+- `--dry-run` 走完全部检查但不写盘。
+- 重复执行是幂等的：已经搬过就只对账工作区成员资格。
+- 同一趟（应用关闭时）顺带收尾：合并改名前的译文库（按 key 取较新的那条，不丢翻译）、删掉空掉的旧插件目录。
+
+### 改名时改了什么
+
+目录 `dsh-reasoning-translator` → `dsh-text-manager`，同时插件内部的身份标识一起改：包名、Loader 行 id、locale 命名空间、Host 路由前缀（`/text-manager/api`）、数据目录（`%DSH_HOME%/text-manager`）、DOM 属性前缀（`data-dsh-tm`）、界面名称（`文本翻译`），以及三处安装锚点：profile 的依赖项、`dsh.profile.bundles`、`pnpm-lock.yaml` 与 `node_modules` 链接。
