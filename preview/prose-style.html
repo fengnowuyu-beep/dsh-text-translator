@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>思考译文 vs 旁白译文 — 样式预览</title>
+<style>
+/* ── real theme tokens, lifted from @deepseek-ai/dsh-client-ui-theme ─────── */
+.light{
+  --dsw-alias-bg-base:#fff;
+  --dsw-alias-bg-layer-1:#fff;
+  --dsw-alias-bg-layer-2:#fff;
+  --dsw-alias-border-l1:#0000000a;
+  --dsw-alias-border-l2:#0000001a;
+  --dsw-alias-brand-primary:#0f1115;
+  --dsw-alias-label-primary:#0f1115;
+  --dsw-alias-label-secondary:#61666b;
+  --dsw-alias-label-tertiary:#81858c;
+  --dsw-alias-state-error-primary:#ec1313;
+  --dsw-radius-sm:8px;
+  --dsw-radius-lg:16px;
+}
+.dark{
+  --dsw-alias-bg-base:#151517;
+  --dsw-alias-bg-layer-1:#232324;
+  --dsw-alias-bg-layer-2:#2c2c2e;
+  --dsw-alias-border-l1:#ffffff0f;
+  --dsw-alias-border-l2:#ffffff1f;
+  --dsw-alias-brand-primary:#f9fafb;
+  --dsw-alias-label-primary:#f9fafb;
+  --dsw-alias-label-secondary:#cfd3d6;
+  --dsw-alias-label-tertiary:#adb2b8;
+  --dsw-alias-state-error-primary:#f25a5a;
+  --dsw-radius-sm:8px;
+  --dsw-radius-lg:16px;
+}
+*{box-sizing:border-box}
+/* preview-only: these two come from the content-scale plugin at runtime */
+:root{--dsh-content-font-size-secondary:13px;--dsh-content-font-delta-secondary:0px}
+body{margin:0;font-family:-apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:#f2f3f5;color:#1b1c1e}
+.columns{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:100vh}
+section{padding:22px}
+section.light{background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#1b1c1e)}
+section.dark{background:var(--dsw-alias-bg-base,#131417);color:var(--dsw-alias-label-primary,#f2f3f5)}
+h2{font-size:14px;font-weight:600;margin:0 0 14px}
+.hint{font-size:11px;margin:0 0 6px;color:var(--dsw-alias-label-tertiary,#8b8d93)}
+.frame{margin:0 0 16px}
+.origin{border-left:2px solid transparent;padding:2px 0 2px 10px;color:var(--dsw-alias-label-secondary,#b9bbc1);font-size:13px}
+/* ── the shipped plugin stylesheet, verbatim ───────────────────────────── */
+
+[data-dsh-tm="block"]{box-sizing:border-box;margin:2px 0 8px;padding:8px 12px;border-left:2px solid var(--dsw-alias-brand-primary);border-radius:var(--dsw-radius-sm,6px);background:var(--dsw-alias-bg-layer-1,transparent);color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary,13px);line-height:calc(20px + var(--dsh-content-font-delta-secondary,0px))}
+[data-dsh-tm="head"]{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary))}
+[data-dsh-tm="badge"]{flex:none;padding:0 5px;border-radius:var(--dsw-radius-sm,6px);background:var(--dsw-alias-bg-layer-2,transparent);letter-spacing:.02em}
+[data-dsh-tm="status"]{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[data-dsh-tm="block"][data-status="error"] [data-dsh-tm="status"]{color:var(--dsw-alias-state-error-primary)}
+[data-dsh-tm="act"]{flex:none;appearance:none;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:inherit;font:inherit;font-size:11px;line-height:16px;padding:0 6px;border-radius:var(--dsw-radius-sm,6px);cursor:pointer}
+[data-dsh-tm="act"]:hover{background:var(--dsw-alias-bg-layer-2,transparent);color:var(--dsw-alias-label-primary)}
+[data-dsh-tm="body"]{white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary)}
+[data-dsh-tm="body"][hidden]{display:none}
+[data-dsh-tm="block"][data-collapsed] [data-dsh-tm="body"]{display:none}
+[data-dsh-tm="block"][data-empty]{padding:3px 12px;border-left-color:var(--dsw-alias-border-l2);opacity:.62}
+[data-dsh-tm="block"][data-empty] [data-dsh-tm="head"]{margin-bottom:0}
+[data-dsh-tm="block"][data-empty]:hover{opacity:1}
+[data-dsh-tm="act"][disabled]{opacity:.6;cursor:default}
+[data-dsh-tm="block"][data-status="error"] [data-dsh-tm="head"]{color:var(--dsw-alias-state-error-primary)}
+[data-dsh-tm="block"][data-kind="prose"]{border-left:3px dashed var(--dsw-alias-label-tertiary,currentColor);border-radius:0;background:transparent;padding-left:10px}
+[data-dsh-tm="block"][data-kind="prose"][data-empty]{border-left-color:var(--dsw-alias-border-l2);opacity:.62}
+[data-dsh-tm="block"][data-kind="prose"] [data-dsh-tm="badge"]{background:transparent;border:1px dashed var(--dsw-alias-border-l2)}
+
+</style>
+</head>
+<body>
+<div class="columns">
+
+    <section class="light">
+      <h2>浅色</h2>
+      <p class="hint">思考块翻译（品牌色竖条 + 卡片底色）</p>
+      
+        <div class="frame">
+          <div class="origin">Let me verify the segment ordering logic before describing it.</div>
+          <div data-dsh-tm="block" data-kind="reasoning">
+            <div data-dsh-tm="head">
+              <span data-dsh-tm="badge">中文翻译</span>
+              <span data-dsh-tm="status">已翻译 · 3 段</span>
+              <button data-dsh-tm="act">刷新</button>
+              <button data-dsh-tm="act">复制</button>
+            </div>
+            <div data-dsh-tm="body">让我先确认一下分段顺序的逻辑，然后再说明。实测下来，句末切分才是成本主因。</div>
+          </div>
+        </div>
+      
+        <div class="frame">
+          <div class="origin">Another reasoning block.</div>
+          <div data-dsh-tm="block" data-kind="reasoning" data-empty>
+            <div data-dsh-tm="head">
+              <span data-dsh-tm="badge">中文翻译</span>
+              <span data-dsh-tm="status">未翻译</span>
+              <button data-dsh-tm="act">翻译</button>
+              <button data-dsh-tm="act">复制</button>
+            </div>
+            
+          </div>
+        </div>
+      <p class="hint" style="margin-top:26px">零散文字翻译（灰竖条 + 虚线顶边 + 无底色）</p>
+      
+        <div class="frame">
+          <div class="origin">Now let me run the tests and compare both outputs.</div>
+          <div data-dsh-tm="block" data-kind="prose">
+            <div data-dsh-tm="head">
+              <span data-dsh-tm="badge">旁白翻译</span>
+              <span data-dsh-tm="status">已翻译 · 2 段</span>
+              <button data-dsh-tm="act">刷新</button>
+              <button data-dsh-tm="act">复制</button>
+            </div>
+            <div data-dsh-tm="body">现在把测试跑一遍，然后看一下两边的输出是否一致。</div>
+          </div>
+        </div>
+      
+        <div class="frame">
+          <div class="origin">And then I will update the README.</div>
+          <div data-dsh-tm="block" data-kind="prose" data-empty>
+            <div data-dsh-tm="head">
+              <span data-dsh-tm="badge">旁白翻译</span>
+              <span data-dsh-tm="status">未翻译</span>
+              <button data-dsh-tm="act">翻译</button>
+              <button data-dsh-tm="act">复制</button>
+            </div>
+            
+          </div>
+        </div>
+    </section>
+
+    <section class="dark" data-ds-dark-theme>
+      <h2>深色</h2>
+      <p class="hint">思考块翻译（品牌色竖条 + 卡片底色）</p>
+      
+        <div class="frame">
+          <div class="origin">Let me verify the segment ordering logic before describing it.</div>
+          <div data-dsh-tm="block" data-kind="reasoning">
+            <div data-dsh-tm="head">
+              <span data-dsh-tm="badge">中文翻译</span>
+              <span data-dsh-tm="status">已翻译 · 3 段</span>
+              <button data-dsh-tm="act">刷新</button>
+              <button data-dsh-tm="act">复制</button>
+            </div>
+            <div data-dsh-tm="body">让我先确认一下分段顺序的逻辑，然后再说明。实测下来，句末切分才是成本主因。</div>
+          </div>
+        </div>
+      
+        <div class="frame">
+          <div class="origin">Another reasoning block.</div>
+          <div data-dsh-tm="block" data-kind="reasoning" data-empty>
+            <div data-dsh-tm="head">
+              <span data-dsh-tm="badge">中文翻译</span>
+              <span data-dsh-tm="status">未翻译</span>
+              <button data-dsh-tm="act">翻译</button>
+              <button data-dsh-tm="act">复制</button>
+            </div>
+            
+          </div>
+        </div>
+      <p class="hint" style="margin-top:26px">零散文字翻译（灰竖条 + 虚线顶边 + 无底色）</p>
+      
+        <div class="frame">
+          <div class="origin">Now let me run the tests and compare both outputs.</div>
+          <div data-dsh-tm="block" data-kind="prose">
+            <div data-dsh-tm="head">
+              <span data-dsh-tm="badge">旁白翻译</span>
+              <span data-dsh-tm="status">已翻译 · 2 段</span>
+              <button data-dsh-tm="act">刷新</button>
+              <button data-dsh-tm="act">复制</button>
+            </div>
+            <div data-dsh-tm="body">现在把测试跑一遍，然后看一下两边的输出是否一致。</div>
+          </div>
+        </div>
+      
+        <div class="frame">
+          <div class="origin">And then I will update the README.</div>
+          <div data-dsh-tm="block" data-kind="prose" data-empty>
+            <div data-dsh-tm="head">
+              <span data-dsh-tm="badge">旁白翻译</span>
+              <span data-dsh-tm="status">未翻译</span>
+              <button data-dsh-tm="act">翻译</button>
+              <button data-dsh-tm="act">复制</button>
+            </div>
+            
+          </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

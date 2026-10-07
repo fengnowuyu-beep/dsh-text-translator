@@ -1,0 +1,8 @@
+# Byte-exact checkout: this plugin's sources are read as UTF-8 text by tools
+# that compare exact strings (the stylesheet tests, the asar/preview helpers), so
+# git must never rewrite line endings on checkout.
+* -text
+
+# These carry their own encodings and must stay binary to git.
+*.woff2 binary
+*.zstd binary
