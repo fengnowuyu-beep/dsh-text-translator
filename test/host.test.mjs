@@ -390,6 +390,50 @@ await test('a persistent failure surfaces after the attempt cap', async () => {
   assert.equal(seen.length, 3, 'the attempt cap bounds the retries')
 })
 
+await test('the style document round-trips and is persisted', async () => {
+  assert.deepEqual((await call('settings.get')).body.settings.textStyle,
+    { enabled: false, live: true, targets: {} }, 'the style module starts off, previewing live')
+  const payload = {
+    enabled: true,
+    live: false,
+    targets: { body: { preset: 'large', options: { size: 16 } } }
+  }
+  const updated = await call('settings.update', { settings: { textStyle: payload } })
+  assert.deepEqual(updated.body.settings.textStyle, payload)
+  const stored = JSON.parse(readFileSync(join(home, 'text-manager', 'settings.json'), 'utf8'))
+  assert.deepEqual(stored.textStyle, payload, 'the style document lands in the settings file')
+  assert.equal(updated.body.settings.enabled, true, 'and the translation module is untouched by it')
+})
+
+await test('a hostile style document is coerced, never trusted', async () => {
+  const updated = await call('settings.update', {
+    settings: {
+      textStyle: {
+        enabled: 'yes',
+        live: 1,
+        targets: {
+          body: {
+            preset: 'x'.repeat(200),
+            options: { size: 'big', keep: 12, ok: true, drop: { nested: 1 }, long: 'y'.repeat(500) }
+          },
+          '': { preset: 'default' },
+          good: { preset: 'card', options: { radius: 8 } }
+        }
+      }
+    }
+  })
+  const style = updated.body.settings.textStyle
+  assert.equal(style.enabled, false, 'a non-boolean flag falls back to the default')
+  assert.equal(style.live, true)
+  assert.equal(style.targets.body.preset.length, 32, 'a preset name is clipped')
+  assert.deepEqual(style.targets.body.options,
+    { size: 'big', keep: 12, ok: true },
+    'short primitives survive; a nested object and an over-long string are dropped')
+  assert.equal(style.targets[''], undefined, 'an empty target key is dropped')
+  assert.deepEqual(style.targets.good, { preset: 'card', options: { radius: 8 } },
+    'a well-formed target is kept verbatim')
+})
+
 await test('cutMode defaults to balanced and round-trips', async () => {
   assert.equal((await call('settings.get')).body.settings.cutMode, 'balanced')
   assert.equal((await call('settings.update', { settings: { cutMode: 'block' } })).body.settings.cutMode, 'block')

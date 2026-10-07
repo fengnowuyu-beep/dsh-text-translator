@@ -1,7 +1,7 @@
 {
   "name": "dsh-text-manager",
-  "version": "1.5.0",
-  "description": "Automatically translate English reasoning (thinking) blocks into Chinese with a DeepSeek-compatible model, with its own settings page · 自动把英文思考过程翻译成中文，自带设置页面",
+  "version": "1.6.0",
+  "description": "Two independent modules for DSH conversations: translate English reasoning and interleaved narration into Chinese, and restyle the text inside the conversation · 文本管理器：翻译模块（思考链 + 零散文字）+ 对话内文字样式模块，两者各有独立开关",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -39,14 +39,16 @@
     "icon.svg"
   ],
   "scripts": {
-    "test": "node test/host.test.mjs && node test/client.test.mjs && node test/settings.test.mjs"
+    "test": "node test/host.test.mjs && node test/client.test.mjs && node test/settings.test.mjs && node test/style.test.mjs"
   },
   "keywords": [
     "dsh",
     "dsh-plugin",
     "deepseek-harness",
     "translation",
-    "reasoning"
+    "reasoning",
+    "theme",
+    "typography"
   ],
   "license": "MIT"
 }
