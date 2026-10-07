@@ -49,7 +49,7 @@
 已经通过官方插件管理器安装进 `desktop` profile：
 
 ```text
-dsh-text-manager  →  file:E:/Data/Project/DeepSeekHarness/dsh-text-manager
+dsh-text-manager  →  file:E:/Data/Project/DeepSeekHarness/DSH-Homemade-Plugins/dsh-text-manager
 ```
 
 它做了三件事：
@@ -161,7 +161,7 @@ dsh-text-manager  →  file:E:/Data/Project/DeepSeekHarness/dsh-text-manager
 ## 测试
 
 ```powershell
-cd E:\Data\Project\DeepSeekHarness\dsh-text-manager
+cd E:\Data\Project\DeepSeekHarness\DSH-Homemade-Plugins\dsh-text-manager
 npm test                   # 或依次跑下面三个
 node test/host.test.mjs    # 37 项：路由、栅栏、持久化、请求形状、模型列表、译文库、lookup/force、重试退避、重启回放
 node test/client.test.mjs  # 59 项：fiber 读取、分段协议、增量与重写、自动展开与读者意图、观察器分支、新/历史判定、按钮语义、段落顺序、两类行的识别与守卫、粒度档位、围栏保护、款式区分
@@ -234,18 +234,34 @@ node tools/measure-granularity.mjs    # 各粒度档位的取舍曲线
 
 ## 工作区与版本管理
 
-本目录现在既是**一个独立的 git 仓库**，也是 DSH 里**一个独立的工作区**。
+本插件住在 **`E:\Data\Project\DeepSeekHarness\DSH-Homemade-Plugins\`** —— 自研插件的容器目录，它同时是 DSH 里一个独立的工作区，三个仓库都在它下面：
 
-- **git**：`.git` 就在本目录里，分支 `main`，初始提交即 1.5.0。
-- `.gitattributes` 里写了 `* -text`：插件的源码会被按字节读取（样式表测试、asar 与预览工具都比对精确字符串），所以 git 绝不能在检出时改写换行。
-- **工作区**：在 `%DSH_HOME%/storages/workspace.json` 里注册了 `dsh-text-manager`，path 指向本目录。
-- **把一个已有对话搬进本工作区**：
+| 目录 | git | 是什么 |
+| --- | --- | --- |
+| `dsh-text-manager/` | ✅ 独立仓库 | 本插件（思考链 + 零散文字翻译） |
+| `dsh-toolbox/` | ✅ 独立仓库 | 自用工具库：一键重启、检查更新、Enter 发送、本对话消费金额 |
+| `dsh-windows-notify/` | ✅ 独立仓库 | Windows 桌面通知 + 分场景提示音 |
+
+- **git**：每个仓库分支都是 `main`。`dsh-text-manager` 的 `.git` 就在本目录里。
+- 三个仓库都写了 `.gitattributes`（`* -text`）：插件的源码会被按字节读取（样式表测试、asar 与预览工具都比对精确字符串），`scripts/` 下的 PowerShell/VBScript 也是按原样执行的，所以 git 绝不能在检出时改写换行或编码。
+- **工作区**：`%DSH_HOME%/storages/workspace.json` 里的 `DSH-Homemade-Plugins`，path 指向容器目录。**会话归属取决于它自己头部记录的 `cwd`**，所以这个工作区下的会话 `cwd` 都是容器目录本身（不是某个插件子目录）。
+- **把已有对话搬进本工作区**：
 
   ```powershell
   node tools/move-session.mjs --dry-run   # 只检查，不写盘
   # 完全退出 DeepSeek Harness，然后：
   node tools/move-session.mjs
   ```
+
+  `tools/find-sessions.mjs` 用来按标题找会话 id、并看每个工作区当前归属谁（只读）。
+
+  | 参数 | 作用 |
+  | --- | --- |
+  | `--session=id1,id2` | 要搬的会话（默认：本工作区那三个） |
+  | `--cwd=E:\path` | 目标工作区路径（默认：容器目录） |
+  | `--drop-workspace=E:\path` | 会话搬走、目录也没了之后，删掉这个作废的工作区记录 |
+  | `--workspace-only` | 只注册工作区、不碰任何会话日志（应用运行时也安全） |
+  | `--dry-run` / `--force` | 只检查 / 跳过「应用已关闭」检测 |
 
 ### 为什么搬对话必须先退出应用
 
@@ -255,17 +271,16 @@ DSH **没有**「移动会话」这个操作。一个会话属于哪个工作区
 <DSH_HOME>/sessions/<编码后的 cwd>/<会话 id>/session.v4.jsonl.zstd
 ```
 
-所以「搬走」必须让三件事同时成立：改写头部帧里的 `cwd`、把会话目录挪到新的项目目录、在两个工作区记录之间移动会话 id。
+所以「搬走」必须让三件事同时成立：改写头部帧里的 `cwd`、把会话目录挪到新的项目目录、在工作区记录之间移动会话 id。
 
 而**应用运行中做这件事是危险的**：它在内存里持有旧的 header，每次追加事件都会**重新推导路径**（`resolveCurrentLog`），所以热搬会让新位置那份被冻住，事件继续写进旧路径 —— 历史被劈成两半。脚本因此在检测到 DeepSeek Harness 进程时直接拒绝运行。
 
 ### 脚本的安全设计
 
-- 新文件**先写、后完整校验**（每一帧都能解压、每一行 JSON 都能解析、帧数与事件数与原文逐个相等），全部通过才删除原件。
+- 每个新文件**先写、后完整校验**（每一帧都能解压、每一行 JSON 都能解析、帧数与事件数与原文逐个相等），全部通过才删除原件。
 - 头部帧的编码格式会先与产物里的写入器比对（`FHD` 必须一致，含 checksum 标志），再动手。
-- `--dry-run` 走完全部检查但不写盘。
-- 重复执行是幂等的：已经搬过就只对账工作区成员资格。
-- 同一趟（应用关闭时）顺带收尾：合并改名前的译文库（按 key 取较新的那条，不丢翻译）、删掉空掉的旧插件目录。
+- `--dry-run` 走完全部检查但不写盘；重复执行幂等。
+- 工作区只有**在它不拥有任何会话、且目录确实已不存在**时才会被删掉 —— 所以「目录暂时不可达」永远不会让人丢掉分组。
 
 ### 改名时改了什么
 
