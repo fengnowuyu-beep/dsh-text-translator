@@ -158,7 +158,11 @@ test('every catalogue string has copy in both languages', () => {
     needed.add(target.labelKey)
     groups.add(`styleGroup${target.group.charAt(0).toUpperCase()}${target.group.slice(1)}`)
     for (const preset of Object.keys(target.presets)) needed.add(presetLabelKey(preset))
-    for (const property of target.props) needed.add(STYLE_KNOBS[property].labelKey)
+    for (const property of target.props) {
+      const knob = STYLE_KNOBS[property]
+      needed.add(knob.labelKey)
+      for (const [, choiceKey] of knob.choices ?? []) needed.add(choiceKey)
+    }
   }
   for (const key of groups) needed.add(key)
   const missing = []
@@ -215,12 +219,55 @@ test('declarations carry units and only emit what was asked for', () => {
   assert.equal(styleDeclarations(target, { underline: false }).textDecoration, undefined)
 })
 
-test('a border width always brings a style with it', () => {
+test('a border width keeps the meaning the shipped presets rely on', () => {
+  const body = STYLE_TARGETS.find(item => item.key === 'body')
+  const declarations = styleDeclarations(body, { borderWidth: 3 })
+  assert.equal(declarations.borderLeft, '3px solid currentColor', 'a lone width is a left bar')
+  assert.equal(declarations.borderRight, 'none')
+  assert.equal(declarations.borderTop, 'none')
+  assert.equal(declarations.borderBottom, 'none')
+})
+
+test('the border switch adds one side, all four, or none at all', () => {
+  const body = STYLE_TARGETS.find(item => item.key === 'body')
+  assert.equal(styleDeclarations(body, {}).borderLeft, undefined,
+    'with no switch and no stroke, no border is declared at all')
+  assert.equal(styleDeclarations(body, { borderSides: 'nonsense' }).borderLeft, undefined,
+    'an unknown side is ignored rather than clearing everything')
+
+  const all = styleDeclarations(body, { borderSides: 'all', borderWidth: 2, borderStyle: 'dashed', borderColor: 'brand' })
+  for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
+    assert.equal(all[`border${side}`], '2px dashed var(--dsw-alias-brand-primary)')
+  }
+
+  const right = styleDeclarations(body, { borderSides: 'right' })
+  assert.equal(right.borderRight, '3px solid currentColor', 'width, style and colour all default')
+  assert.equal(right.borderLeft, 'none', 'and every other edge is cleared')
+  assert.equal(right.borderTop, 'none')
+  assert.equal(right.borderBottom, 'none')
+
+  const none = styleDeclarations(body, { borderSides: 'none' })
+  for (const side of ['Top', 'Right', 'Bottom', 'Left']) assert.equal(none[`border${side}`], 'none')
+})
+
+test('every target can take a border of its own', () => {
+  for (const target of STYLE_TARGETS) {
+    for (const property of ['borderSides', 'borderWidth', 'borderStyle', 'borderColor']) {
+      assert.ok(target.props.includes(property), `${target.key} must expose ${property}`)
+      assert.ok(Object.hasOwn(STYLE_KNOBS, property), `${property} needs a knob descriptor`)
+    }
+  }
+})
+
+test('the shipped bar and card presets still produce what they promise', () => {
   const quote = STYLE_TARGETS.find(item => item.key === 'quote')
-  assert.equal(styleDeclarations(quote, { borderWidth: 3 }).borderLeftStyle, 'solid',
-    'a width alone would paint nothing')
-  assert.equal(styleDeclarations(quote, { borderWidth: 3, borderStyle: 'dashed' }).borderLeftStyle, 'dashed')
-  assert.equal(styleDeclarations(quote, { borderStyle: 'dotted' }).borderLeftStyle, 'dotted')
+  const bar = styleDeclarations(quote, styleOptions(quote, { preset: 'bar' }))
+  assert.equal(bar.borderLeft, '3px solid var(--dsw-alias-brand-primary)')
+  assert.equal(bar.borderTop, 'none', 'a bar is not a box')
+
+  const reasoning = STYLE_TARGETS.find(item => item.key === 'reasoning')
+  const card = styleDeclarations(reasoning, styleOptions(reasoning, { preset: 'card' }))
+  assert.equal(card.borderLeft, '0px solid currentColor', 'the card preset drops the bar')
 })
 
 test('declaration maps serialise to kebab-case CSS', () => {

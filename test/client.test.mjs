@@ -190,9 +190,10 @@ test('pickCut flushes on the idle timer even while running', () => {
   assert.deepEqual(pickCut(rest, true, 1800, true), { cut: rest.length, sep: '' })
 })
 
-test('pickCut splits oversized text at a word boundary', () => {
+test('pickCut splits oversized text at a word boundary once the flush is due', () => {
   const rest = `${'word '.repeat(60)}tail`
-  const picked = pickCut(rest, true, 100, false)
+  // Running *and* forced: the flush is what the cap has to bound.
+  const picked = pickCut(rest, true, 100, true)
   assert.ok(picked.cut <= 100)
   assert.ok(picked.cut > 40)
   assert.equal(rest[picked.cut], ' ', 'the split must fall on the separator, not inside a word')
@@ -246,6 +247,40 @@ test('pump emits nothing until a boundary appears', () => {
   assert.equal(translator.sent.length, 0)
   assert.equal(state.sentUpTo, 0)
 })
+
+  test('the per-request cap never forces a cut while a row is streaming', () => {
+    // Regression: the cap used to be checked before the streaming gates, so a mode
+    // that waits for the whole block still shipped 1800-character chunks mid-stream
+    // — which looks exactly like the translation streaming again.
+    const rest = `${'word '.repeat(60)}tail`
+    const picked = pickCut(rest, true, 100, false)
+    assert.equal(picked.cut, 0, 'a streaming row waits for its own boundary')
+  })
+
+  test('a mode that waits for the block sends nothing while the block streams', () => {
+    const translator = harness()
+    translator.settings = { enabled: true, cutMode: 'block', maxSegmentChars: 200 }
+    const long = 'A sentence that is complete. '.repeat(40)
+    const state = rowState(long, true)
+    for (let pass = 0; pass < 5; pass += 1) translator.pump(state, false)
+    assert.equal(translator.sent.length, 0, 'nothing may leave while the block is still streaming')
+  })
+
+  test('the same block goes out in capped requests once it settles', () => {
+    const translator = harness()
+    translator.settings = { enabled: true, cutMode: 'block', maxSegmentChars: 200 }
+    const long = 'A sentence that is complete. '.repeat(40)
+    const state = rowState(long, true)
+    translator.pump(state, false)
+    assert.equal(translator.sent.length, 0)
+
+    state.row = { getAttribute: () => 'ok' }
+    for (let pass = 0; pass < 40; pass += 1) translator.pump(state, false)
+    assert.ok(translator.sent.length > 1, 'the settled block is split, not sent as one giant request')
+    for (const item of translator.sent) {
+      assert.ok(item.segment.length <= 200, `over-cap segment of ${item.segment.length} characters`)
+    }
+  })
 
 test('pump emits each paragraph exactly once as the text streams in', () => {
   const translator = harness()

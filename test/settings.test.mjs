@@ -400,6 +400,8 @@ await test('the style module renders its preview, targets, presets and knobs', (
   const expanded = textOf(view)
   assert.ok(expanded.includes('knobSize'), 'the opened target shows its knobs')
   assert.ok(expanded.includes('knobColor'), 'including the colour palette')
+  assert.ok(expanded.includes('knobBorderSides'), 'and the border switch, which every target has')
+  assert.ok(expanded.includes('sideAll'), 'with its side choices')
   assert.ok(expanded.includes('styleCollapse'), 'and it can be closed again')
 })
 

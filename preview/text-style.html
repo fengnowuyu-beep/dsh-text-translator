@@ -175,10 +175,10 @@ header p{margin:0;font-size:12px;color:var(--dsw-alias-label-tertiary)}
 #p2 [data-dsh-tm-mock="reasoning"],[data-dsh-tm-mock="prose"]{margin:2px 0 8px;padding:8px 12px;border-left:2px solid var(--dsw-alias-brand-primary);border-radius:var(--dsw-radius-sm,6px);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-size:13px}
 #p2 [data-dsh-tm-mock="prose"]{border-left:3px dashed var(--dsw-alias-label-tertiary);border-radius:0;background:transparent}
 #p2 [data-dsh-tm-mock="body"]{font-size:16px;line-height:1.85}
-#p2 [data-dsh-tm-mock="reasoning"]{padding-left:10px;padding-right:10px;padding-top:6px;padding-bottom:6px;background:var(--dsw-alias-bg-layer-2);border-radius:6px;border-left-width:0px;border-left-style:solid}
-#p2 [data-dsh-tm-mock="prose"]{padding-left:10px;padding-right:10px;padding-top:6px;padding-bottom:6px;background:color-mix(in srgb, var(--dsw-static-amber-500, #f7ad31) 18%, transparent);border-radius:8px;border-left-width:0px;border-left-style:solid}
+#p2 [data-dsh-tm-mock="reasoning"]{padding-left:10px;padding-right:10px;padding-top:6px;padding-bottom:6px;background:var(--dsw-alias-bg-layer-2);border-radius:6px;border-top:none;border-right:none;border-bottom:none;border-left:0px solid currentColor}
+#p2 [data-dsh-tm-mock="prose"]{padding-left:10px;padding-right:10px;padding-top:6px;padding-bottom:6px;background:color-mix(in srgb, var(--dsw-static-amber-500, #f7ad31) 18%, transparent);border-radius:8px;border-top:none;border-right:none;border-bottom:none;border-left:0px solid currentColor}
 #p2 [data-dsh-tm-mock="emphasis"]{font-weight:600;padding-left:2px;padding-right:2px;background:color-mix(in srgb, var(--dsw-static-amber-500, #f7ad31) 18%, transparent)}
-#p2 [data-dsh-tm-mock="quote"]{color:var(--dsw-alias-label-secondary);padding-left:12px;padding-right:12px;border-left-width:3px;border-left-style:solid;border-left-color:var(--dsw-alias-brand-primary)}
+#p2 [data-dsh-tm-mock="quote"]{color:var(--dsw-alias-label-secondary);padding-left:12px;padding-right:12px;border-top:none;border-right:none;border-bottom:none;border-left:3px solid var(--dsw-alias-brand-primary)}
 #p2 [data-dsh-tm-mock="link"]{color:var(--dsw-alias-brand-primary);text-decoration:underline}
 #p2 [data-dsh-tm-mock="heading"]{font-weight:650;color:var(--dsw-alias-brand-primary)}
 #p2 [data-dsh-tm-mock="command"]{font-weight:600;color:var(--dsw-alias-brand-primary)}</style>
@@ -282,12 +282,67 @@ header p{margin:0;font-size:12px;color:var(--dsw-alias-label-tertiary)}
 #p4 [data-dsh-tm-mock="prose"]{border-left:3px dashed var(--dsw-alias-label-tertiary);border-radius:0;background:transparent}
 #p4 [data-dsh-tm-mock="body"]{font-family:Georgia, "Songti SC", SimSun, serif;font-size:15px;line-height:1.9}
 #p4 [data-dsh-tm-mock="narration"]{color:var(--dsw-alias-label-secondary);padding-left:10px;padding-right:10px;padding-top:6px;padding-bottom:6px;background:var(--dsw-alias-bg-layer-1);border-radius:6px}
-#p4 [data-dsh-tm-mock="reasoning"]{padding-left:10px;padding-right:10px;padding-top:6px;padding-bottom:6px;background:var(--dsw-alias-bg-layer-2);border-radius:6px;border-left-width:0px;border-left-style:solid}
-#p4 [data-dsh-tm-mock="prose"]{padding-left:10px;padding-right:10px;padding-top:6px;padding-bottom:6px;background:color-mix(in srgb, var(--dsw-static-amber-500, #f7ad31) 18%, transparent);border-radius:8px;border-left-width:0px;border-left-style:solid}
-#p4 [data-dsh-tm-mock="quote"]{padding-left:12px;padding-right:12px;padding-top:8px;padding-bottom:8px;background:var(--dsw-alias-bg-layer-1);border-radius:8px;border-left-width:0px;border-left-style:solid}
+#p4 [data-dsh-tm-mock="reasoning"]{padding-left:10px;padding-right:10px;padding-top:6px;padding-bottom:6px;background:var(--dsw-alias-bg-layer-2);border-radius:6px;border-top:none;border-right:none;border-bottom:none;border-left:0px solid currentColor}
+#p4 [data-dsh-tm-mock="prose"]{padding-left:10px;padding-right:10px;padding-top:6px;padding-bottom:6px;background:color-mix(in srgb, var(--dsw-static-amber-500, #f7ad31) 18%, transparent);border-radius:8px;border-top:none;border-right:none;border-bottom:none;border-left:0px solid currentColor}
+#p4 [data-dsh-tm-mock="quote"]{padding-left:12px;padding-right:12px;padding-top:8px;padding-bottom:8px;background:var(--dsw-alias-bg-layer-1);border-radius:8px;border-top:none;border-right:none;border-bottom:none;border-left:0px solid currentColor}
 #p4 [data-dsh-tm-mock="code"]{background:color-mix(in srgb, var(--dsw-alias-brand-primary) 12%, transparent);border-radius:8px}
 #p4 [data-dsh-tm-mock="toolOutput"]{padding-left:10px;padding-right:10px;padding-top:8px;padding-bottom:8px;background:var(--dsw-alias-bg-layer-1);border-radius:6px}
 #p4 [data-dsh-tm-mock="user"]{padding-left:12px;padding-right:12px;padding-top:8px;padding-bottom:8px;background:var(--dsw-alias-bg-layer-2);border-radius:10px}</style>
+        <div class="mock">
+      <div data-dsh-tm-mock="user"><strong>我的消息：</strong>把这几段话的样式分开调一下。</div>
+      <div data-dsh-tm-mock="reasoning">
+        <div class="badge">思维翻译</div>
+        <div>让我先确认一下分段顺序的逻辑，再决定要不要改成卡片样式。</div>
+      </div>
+      <div data-dsh-tm-mock="narration">
+        <p style="margin:0">Now let me run the suite and compare both outputs before touching the stylesheet.</p>
+      </div>
+      <div data-dsh-tm-mock="prose">
+        <div class="badge">旁白翻译</div>
+        <div>现在把测试跑一遍，然后对照两边的输出。</div>
+      </div>
+      <div data-dsh-tm-mock="body">
+        <h3 style="margin:10px 0 6px">结论</h3>
+        <p style="margin:0 0 8px">段落顺序由 <strong data-dsh-tm-mock="emphasis">源序槽位</strong> 保证，见
+          <a data-dsh-tm-mock="link" href="#">说明</a> 与 <code data-dsh-tm-mock="inlineCode">joinParts()</code>。</p>
+        <blockquote data-dsh-tm-mock="quote">切点不落在未闭合的代码围栏里。</blockquote>
+        <ul data-dsh-tm-mock="list" style="margin:0 0 8px;padding-left:20px"><li>第一项</li><li>第二项</li></ul>
+        <pre data-dsh-tm-mock="code" style="margin:0 0 8px">const parts = joinParts(state.parts)</pre>
+        <div class="tool">
+          <div data-dsh-tm-mock="command">运行测试：node test/host.test.mjs</div>
+          <pre data-dsh-tm-mock="toolOutput" style="margin:0">37/37 checks passed</pre>
+        </div>
+      </div></div>
+      </div>
+    </section>
+    <section class="pane" id="p5">
+      <h2>自选边框</h2>
+      <p class="note">边框开关现在每一项都有：可以只留左侧竖线、只要下边、四周都要，或者干脆去掉自带的那条。</p>
+      <div class="frame">
+        <style>#p5 [data-dsh-tm-mock]{box-sizing:border-box}
+#p5 [data-dsh-tm-mock="body"]>p,[data-dsh-tm-mock="body"]>blockquote,[data-dsh-tm-mock="body"]>pre,[data-dsh-tm-mock="body"]>ul{margin:0 0 8px}
+#p5 [data-dsh-tm-mock="body"]>p:last-child,[data-dsh-tm-mock="body"]>pre:last-child,[data-dsh-tm-mock="body"]>ul:last-child{margin-bottom:0}
+#p5 [data-dsh-tm-mock="body"] :is(h3){margin:10px 0 6px;font-size:16px;font-weight:600}
+#p5 [data-dsh-tm-mock="body"] :is(ul,ol){padding-left:20px}
+#p5 [data-dsh-tm-mock="body"] strong{font-weight:600}
+#p5 [data-dsh-tm-mock="quote"]{margin:0 0 8px;padding:2px 0 2px 12px;border-left:3px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary)}
+#p5 [data-dsh-tm-mock="code"],[data-dsh-tm-mock="toolOutput"]{margin:0 0 8px;padding:8px 10px;border-radius:6px;background:var(--dsw-alias-bg-layer-2);font-family:var(--ds-font-family-code,monospace);font-size:12.5px;overflow-x:auto}
+#p5 [data-dsh-tm-mock="inlineCode"]{padding:1px 4px;border-radius:4px;background:var(--dsw-alias-bg-layer-2);font-family:var(--ds-font-family-code,monospace);font-size:12.5px}
+#p5 [data-dsh-tm-mock="link"]{color:var(--dsw-alias-brand-primary);text-decoration:none}
+#p5 [data-dsh-tm-mock="command"]{color:var(--dsw-alias-label-secondary)}
+#p5 [data-dsh-tm-mock="user"]{padding:6px 10px;border-radius:10px;background:var(--dsw-alias-bg-layer-2)}
+#p5 [data-dsh-tm-mock="reasoning"],[data-dsh-tm-mock="prose"]{margin:2px 0 8px;padding:8px 12px;border-left:2px solid var(--dsw-alias-brand-primary);border-radius:var(--dsw-radius-sm,6px);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-size:13px}
+#p5 [data-dsh-tm-mock="prose"]{border-left:3px dashed var(--dsw-alias-label-tertiary);border-radius:0;background:transparent}
+#p5 [data-dsh-tm-mock="body"]{border-top:none;border-right:none;border-bottom:none;border-left:3px solid var(--dsw-alias-brand-primary)}
+#p5 [data-dsh-tm-mock="narration"]{border-top:none;border-right:none;border-bottom:none;border-left:2px dashed var(--dsw-alias-label-tertiary)}
+#p5 [data-dsh-tm-mock="reasoning"]{border-top:none;border-right:none;border-bottom:none;border-left:3px dashed var(--dsw-alias-brand-primary)}
+#p5 [data-dsh-tm-mock="prose"]{border-top:none;border-right:none;border-bottom:none;border-left:3px solid var(--dsw-static-amber-500, #f7ad31)}
+#p5 [data-dsh-tm-mock="quote"]{padding-left:10px;padding-right:10px;padding-top:6px;padding-bottom:6px;border-radius:6px;border-top:2px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 12%, transparent);border-right:2px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 12%, transparent);border-bottom:2px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 12%, transparent);border-left:2px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 12%, transparent)}
+#p5 [data-dsh-tm-mock="link"]{border-top:none;border-right:none;border-bottom:1px solid var(--dsw-alias-brand-primary);border-left:none}
+#p5 [data-dsh-tm-mock="code"]{border-radius:8px;border-top:2px solid var(--dsw-static-blue-500, #4176e6);border-right:2px solid var(--dsw-static-blue-500, #4176e6);border-bottom:2px solid var(--dsw-static-blue-500, #4176e6);border-left:2px solid var(--dsw-static-blue-500, #4176e6)}
+#p5 [data-dsh-tm-mock="command"]{padding-top:4px;padding-bottom:4px;border-top:none;border-right:none;border-bottom:2px solid var(--dsw-alias-label-tertiary);border-left:none}
+#p5 [data-dsh-tm-mock="toolOutput"]{border-radius:6px;border-top:2px dashed var(--dsw-alias-label-tertiary);border-right:2px dashed var(--dsw-alias-label-tertiary);border-bottom:2px dashed var(--dsw-alias-label-tertiary);border-left:2px dashed var(--dsw-alias-label-tertiary)}
+#p5 [data-dsh-tm-mock="user"]{padding-left:10px;padding-right:10px;padding-top:6px;padding-bottom:6px;border-radius:10px;border-top:2px solid var(--dsw-alias-brand-primary);border-right:2px solid var(--dsw-alias-brand-primary);border-bottom:2px solid var(--dsw-alias-brand-primary);border-left:2px solid var(--dsw-alias-brand-primary)}</style>
         <div class="mock">
       <div data-dsh-tm-mock="user"><strong>我的消息：</strong>把这几段话的样式分开调一下。</div>
       <div data-dsh-tm-mock="reasoning">
