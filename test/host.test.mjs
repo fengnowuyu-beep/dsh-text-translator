@@ -434,6 +434,38 @@ await test('a hostile style document is coerced, never trusted', async () => {
     'a well-formed target is kept verbatim')
 })
 
+await test('a segment with no prose in it is skipped, not translated', async () => {
+  // The tail of a Chinese answer is often just file links. It read as "not
+  // Chinese", so it was sent, and the same ASCII came back as the "translation" —
+  // which put a pointless block under the answer and cost a request.
+  const links = '- [lib/client.js:379](DSH-Homemade-Plugins/dsh-text-manager/lib/client.js:379), '
+    + '[test/client.test.mjs](DSH-Homemade-Plugins/dsh-text-manager/test/client.test.mjs), '
+    + '[tools/make-style-preview.mjs](DSH-Homemade-Plugins/dsh-text-manager/tools/make-style-preview.mjs)'
+  seen.length = 0
+  const skipped = await call('translate', { text: links })
+  assert.equal(skipped.body.skipped, true, 'paths and links have nothing to translate')
+  assert.equal(skipped.body.reason, 'structural')
+  assert.equal(seen.length, 0, 'and nothing reaches the provider')
+
+  // A leftover scripted status from the retry tests would turn this into two
+  // requests, so the queue is cleared first.
+  providerScript.length = 0
+  const prose = await call('translate', { text: 'Let me check the build output before I touch the parser.' })
+  assert.notEqual(prose.body.skipped, true, 'real prose is still translated')
+  assert.match(prose.body.text, /^【译】/)
+  assert.equal(seen.length, 1)
+})
+
+await test('a short segment is never mistaken for structure', async () => {
+  // Below the length threshold the rule stands down: a brief tail like this may
+  // still be worth translating.
+  providerScript.length = 0
+  seen.length = 0
+  const { body } = await call('translate', { text: 'Done.' })
+  assert.notEqual(body.skipped, true, 'short text is judged only by its language')
+  assert.equal(seen.length, 1)
+})
+
 await test('cutMode defaults to balanced and round-trips', async () => {
   assert.equal((await call('settings.get')).body.settings.cutMode, 'balanced')
   assert.equal((await call('settings.update', { settings: { cutMode: 'block' } })).body.settings.cutMode, 'block')

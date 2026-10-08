@@ -250,9 +250,21 @@ test('the border switch adds one side, all four, or none at all', () => {
   for (const side of ['Top', 'Right', 'Bottom', 'Left']) assert.equal(none[`border${side}`], 'none')
 })
 
+test('the two translation styles never overlap', () => {
+  const narration = STYLE_TARGETS.find(item => item.key === 'prose')
+  const answer = STYLE_TARGETS.find(item => item.key === 'proseAnswer')
+  assert.ok(narration !== undefined && answer !== undefined, 'both translation styles must exist')
+  assert.ok(narration.real.includes(':not([data-dsh-tm-part="answer"])'),
+    'the narration style excludes the answer translation')
+  assert.ok(answer.real.includes('[data-dsh-tm-part="answer"]'),
+    'and the answer style requires it')
+  assert.notEqual(narration.labelKey, answer.labelKey, 'they are labelled differently')
+})
+
 test('every target can take a border of its own', () => {
   for (const target of STYLE_TARGETS) {
-    for (const property of ['borderSides', 'borderWidth', 'borderStyle', 'borderColor']) {
+    for (const property of ['borderSides', 'borderWidth', 'borderStyle', 'borderColor',
+      'paddingLeft', 'paddingRight', 'paddingY']) {
       assert.ok(target.props.includes(property), `${target.key} must expose ${property}`)
       assert.ok(Object.hasOwn(STYLE_KNOBS, property), `${property} needs a knob descriptor`)
     }
@@ -268,6 +280,18 @@ test('the shipped bar and card presets still produce what they promise', () => {
   const reasoning = STYLE_TARGETS.find(item => item.key === 'reasoning')
   const card = styleDeclarations(reasoning, styleOptions(reasoning, { preset: 'card' }))
   assert.equal(card.borderLeft, '0px solid currentColor', 'the card preset drops the bar')
+})
+
+test('the two paddings are independent, which is how text clears a bar', () => {
+  const body = STYLE_TARGETS.find(item => item.key === 'body')
+  assert.deepEqual(styleDeclarations(body, { paddingLeft: 14 }),
+    { paddingLeft: '14px' }, 'only the left side moves')
+  assert.deepEqual(styleDeclarations(body, { paddingRight: 6 }), { paddingRight: '6px' })
+  assert.deepEqual(styleDeclarations(body, { paddingY: 4 }),
+    { paddingTop: '4px', paddingBottom: '4px' })
+  const both = styleDeclarations(body, { borderSides: 'left', borderWidth: 3, paddingLeft: 14 })
+  assert.equal(both.borderLeft, '3px solid currentColor')
+  assert.equal(both.paddingLeft, '14px', 'a bar plus its breathing room')
 })
 
 test('declaration maps serialise to kebab-case CSS', () => {

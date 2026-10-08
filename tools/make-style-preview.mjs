@@ -177,17 +177,17 @@ const panes = [
     toolOutput: { preset: 'card', options: {} },
     user: { preset: 'card', options: {} }
   })),
-  pane('p5', '自选边框', '边框开关现在每一项都有：可以只留左侧竖线、只要下边、四周都要，或者干脆去掉自带的那条。', style({
-    body: { preset: 'default', options: { borderSides: 'left', borderWidth: 3, borderColor: 'brand' } },
+  pane('p5', '自选边框 + 左边距', '边框开关每一项都有：只留左侧竖线、只要下边、四周都要，或者去掉自带的那条。正文那条竖线配了 14px 左边距，文字就不会贴着线。', style({
+    body: { preset: 'default', options: { borderSides: 'left', borderWidth: 3, borderColor: 'brand', paddingLeft: 14 } },
     narration: { preset: 'default', options: { borderSides: 'left', borderWidth: 2, borderStyle: 'dashed', borderColor: 'faint' } },
     reasoning: { preset: 'default', options: { borderSides: 'left', borderWidth: 3, borderStyle: 'dashed', borderColor: 'brand' } },
     prose: { preset: 'default', options: { borderSides: 'left', borderWidth: 3, borderColor: 'amber' } },
-    quote: { preset: 'default', options: { borderSides: 'all', borderWidth: 2, borderColor: 'tintBrand', paddingX: 10, paddingY: 6, radius: 6 } },
+    quote: { preset: 'default', options: { borderSides: 'all', borderWidth: 2, borderColor: 'tintBrand', paddingLeft: 10, paddingRight: 10, paddingY: 6, radius: 6 } },
     code: { preset: 'default', options: { borderSides: 'all', borderWidth: 2, borderColor: 'blue', radius: 8 } },
     toolOutput: { preset: 'default', options: { borderSides: 'all', borderWidth: 2, borderStyle: 'dashed', borderColor: 'faint', radius: 6 } },
     command: { preset: 'default', options: { borderSides: 'bottom', borderWidth: 2, borderColor: 'faint', paddingY: 4 } },
     link: { preset: 'default', options: { borderSides: 'bottom', borderWidth: 1, borderColor: 'brand' } },
-    user: { preset: 'default', options: { borderSides: 'all', borderWidth: 2, borderColor: 'brand', radius: 10, paddingX: 10, paddingY: 6 } }
+    user: { preset: 'default', options: { borderSides: 'all', borderWidth: 2, borderColor: 'brand', radius: 10, paddingLeft: 10, paddingRight: 10, paddingY: 6 } }
   }))
 ].join('')
 

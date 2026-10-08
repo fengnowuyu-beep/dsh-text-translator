@@ -86,7 +86,7 @@ const bundle = definition.factory(fakeRequire)
 const internals = bundle.__internals
 assert.ok(internals !== undefined, 'bundle must expose __internals')
 
-const { pickCut, findSentenceEnd, readPropsText, readRowText, Translator, Runner, ROW_KINDS, CUT_MODES, cutModeOf, fenceOpenAfter, STYLESHEET, KNOWN, remember } = internals
+const { pickCut, findSentenceEnd, readPropsText, readRowText, Translator, Runner, ROW_KINDS, CUT_MODES, cutModeOf, fenceOpenAfter, STYLESHEET, partOfRow, badgeKeyOf, badgeTitleKeyOf, KNOWN, remember } = internals
 /** The companion stylesheet, as shipped. */
 const CSS_TEXT = STYLESHEET
 /** The reasoning kind, whose props matcher the row-access tests exercise. */
@@ -871,6 +871,43 @@ test('readPropsText reads MarkdownText props for prose, and rejects reasoning pr
   assert.equal(readPropsText(prose, PROSE_KIND.matchesProps), 'interleaved narration')
   const reasoning = elementWithFiber({ text: 'thinking', running: true, usePresentation: () => {} })
   assert.equal(readPropsText(reasoning, PROSE_KIND.matchesProps), null, 'a reasoning row is not prose')
+})
+
+test('a companion is labelled by the part it translates', () => {
+  const engine = Object.create(Translator.prototype)
+  engine.label = null
+  assert.equal(engine.badgeText({ kind: PROSE_KIND, part: 'narration' }), '旁白翻译')
+  assert.equal(engine.badgeText({ kind: PROSE_KIND, part: 'answer' }), '正文翻译',
+    'the answer translation must not claim to be narration')
+  assert.equal(engine.badgeText({ kind: REASONING_KIND, part: 'answer' }), '中文翻译',
+    'reasoning is unaffected by the part')
+  assert.ok(engine.badgeTitle({ kind: PROSE_KIND, part: 'answer' }).includes('回答正文'))
+  // The offline call style — a bare kind — still answers.
+  assert.equal(engine.badgeText(PROSE_KIND), '旁白翻译')
+  assert.equal(badgeKeyOf({ kind: PROSE_KIND, part: 'answer' }), 'badgeAnswer')
+  assert.equal(badgeTitleKeyOf({ kind: REASONING_KIND }), 'badgeReasoningTitle')
+})
+
+test('the turn last response part is the answer, per turn', () => {
+  const fakeItem = (turn) => ({
+    closest: (selector) => (selector === '[data-chat-turn]' ? { getAttribute: () => turn } : null)
+  })
+  const first = fakeItem('7')
+  const second = fakeItem('7')
+  const otherTurn = fakeItem('9')
+  const original = globalThis.document.querySelectorAll
+  globalThis.document.querySelectorAll = (selector) => (selector.includes('data-chat-group-part')
+    ? [first, second, otherTurn]
+    : [])
+  try {
+    const rowIn = (item) => ({ closest: () => item })
+    assert.equal(partOfRow(rowIn(first)), 'narration')
+    assert.equal(partOfRow(rowIn(second)), 'answer')
+    assert.equal(partOfRow(rowIn(otherTurn)), 'answer', 'each turn is judged on its own')
+    assert.equal(partOfRow({ closest: () => null }), 'narration', 'an unknown row degrades quietly')
+  } finally {
+    globalThis.document.querySelectorAll = original
+  }
 })
 
 test('the two kinds carry different badges and tooltips', () => {
