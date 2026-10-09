@@ -387,6 +387,56 @@ test('the engine installs one stylesheet and repaints it on apply', () => {
   assert.equal(engine.observer, null)
 })
 
+test('a settings reload never discards the settings page draft', () => {
+  // Regression: reload() runs on start and on every visibilitychange and repainted
+  // from the stored document, so switching windows silently threw away the reader's
+  // last adjustments and the conversation snapped back to the saved look.
+  const head = { children: [], append(node) { this.children.push(node) } }
+  const items = [fakeElement({ turn: '1' }), fakeElement({ turn: '1' })]
+  const doc = { ...fakeDocument(items), head, createElement: () => ({ dataset: {}, textContent: '', remove() {} }) }
+  const engine = new StyleEngine()
+  const stored = { enabled: true, live: true, targets: { body: { preset: 'large', options: {} } } }
+  const draft = { enabled: true, live: true, targets: { body: { preset: 'compact', options: {} } } }
+  engine.start(doc)
+  engine.applyStored(stored)
+  assert.ok(engine.element.textContent.includes('font-size:16px'), 'the stored document paints')
+
+  engine.apply(draft)
+  assert.ok(engine.element.textContent.includes('font-size:12.5px'), 'the draft paints over it')
+  engine.applyStored(stored)
+  assert.ok(engine.element.textContent.includes('font-size:12.5px'),
+    'and a reload must not clobber the unsaved draft')
+
+  engine.commit(draft)
+  assert.equal(engine.edited, false, 'saving ends the protection')
+  engine.applyStored(stored)
+  assert.ok(engine.element.textContent.includes('font-size:16px'),
+    'from then on the host document wins again')
+
+  engine.apply(draft)
+  engine.revert()
+  assert.ok(engine.element.textContent.includes('font-size:16px'),
+    'leaving the page without saving drops the draft')
+  engine.stop()
+})
+
+test('a stopped engine revives instead of staying dead', () => {
+  // Regression: stop() set `destroyed` and start() never cleared it, so retag()
+  // returned forever and every tag-scoped style quietly stopped applying.
+  const head = { children: [], append(node) { this.children.push(node) } }
+  const items = [fakeElement({ turn: '1' }), fakeElement({ turn: '1' })]
+  const doc = { ...fakeDocument(items), head, createElement: () => ({ dataset: {}, textContent: '', remove() {} }) }
+  const engine = new StyleEngine()
+  engine.start(doc)
+  engine.stop()
+  engine.start(doc)
+  assert.equal(head.children.length, 2, 'the sheet comes back')
+  engine.apply({ enabled: true, live: true, targets: {} })
+  assert.equal(items[1].attributes.get('data-dsh-tm-part'), 'answer',
+    'and the tags are maintained again')
+  engine.stop()
+})
+
 // ── report ──────────────────────────────────────────────────────────────────
 const failed = results.filter(ok => !ok).length
 console.log(`\n${results.length - failed}/${results.length} checks passed`)

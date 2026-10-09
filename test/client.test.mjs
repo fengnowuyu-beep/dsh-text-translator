@@ -873,6 +873,35 @@ test('readPropsText reads MarkdownText props for prose, and rejects reasoning pr
   assert.equal(readPropsText(reasoning, PROSE_KIND.matchesProps), null, 'a reasoning row is not prose')
 })
 
+test('a freshly adopted row shows nothing until its first verdict', () => {
+  // Regression: adopt() renders a placeholder straight away, so on load every
+  // response row flashed a 旁白翻译 line under its turn and hid it again once the
+  // lookups came back.
+  const engine = Object.create(Translator.prototype)
+  const fresh = { looked: false, live: false, requested: false }
+  assert.equal(engine.awaitsVerdict(fresh), true, 'nothing is known yet, so nothing is shown')
+  assert.equal(engine.awaitsVerdict({ ...fresh, live: true }), false,
+    'a streaming row shows its progress')
+  assert.equal(engine.awaitsVerdict({ ...fresh, requested: true }), false,
+    'and a row the reader asked about shows its button')
+  assert.equal(engine.awaitsVerdict({ ...fresh, looked: true }), false,
+    'once a verdict lands the row speaks for itself')
+})
+
+test('recount marks the first verdict once the parts settle', () => {
+  const engine = Object.create(Translator.prototype)
+  const state = { parts: [], looked: false, status: 'idle', error: '' }
+  engine.recount(state)
+  assert.equal(state.looked, false, 'no parts yet is not a verdict')
+  state.parts.push({ status: 'pending' })
+  engine.recount(state)
+  assert.equal(state.looked, false, 'a pending part is not a verdict either')
+  state.parts[0].status = 'skipped'
+  engine.recount(state)
+  assert.equal(state.looked, true, 'a settled part is')
+  assert.equal(state.skipped, 1)
+})
+
 test('a companion is labelled by the part it translates', () => {
   const engine = Object.create(Translator.prototype)
   engine.label = null
