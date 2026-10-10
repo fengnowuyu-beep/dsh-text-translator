@@ -119,7 +119,7 @@ const server = createServer((request, response) => {
   void route.handler(request, response)
 })
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
-const base = `http://127.0.0.1:${server.address().port}/text-manager/api`
+const base = `http://127.0.0.1:${server.address().port}/text-translator/api`
 
 /**
  * Call one plugin route method.
@@ -310,7 +310,7 @@ await test('the store survives a restart and is read from disk', async () => {
   })
   await new Promise(resolve => restarted.listen(0, '127.0.0.1', resolve))
   seen.length = 0
-  const response = await fetch(`http://127.0.0.1:${restarted.address().port}/text-manager/api/translate`, {
+  const response = await fetch(`http://127.0.0.1:${restarted.address().port}/text-translator/api/translate`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ text, provider: false })
@@ -390,49 +390,7 @@ await test('a persistent failure surfaces after the attempt cap', async () => {
   assert.equal(seen.length, 3, 'the attempt cap bounds the retries')
 })
 
-await test('the style document round-trips and is persisted', async () => {
-  assert.deepEqual((await call('settings.get')).body.settings.textStyle,
-    { enabled: false, live: true, targets: {} }, 'the style module starts off, previewing live')
-  const payload = {
-    enabled: true,
-    live: false,
-    targets: { body: { preset: 'large', options: { size: 16 } } }
-  }
-  const updated = await call('settings.update', { settings: { textStyle: payload } })
-  assert.deepEqual(updated.body.settings.textStyle, payload)
-  const stored = JSON.parse(readFileSync(join(home, 'text-manager', 'settings.json'), 'utf8'))
-  assert.deepEqual(stored.textStyle, payload, 'the style document lands in the settings file')
-  assert.equal(updated.body.settings.enabled, true, 'and the translation module is untouched by it')
-})
 
-await test('a hostile style document is coerced, never trusted', async () => {
-  const updated = await call('settings.update', {
-    settings: {
-      textStyle: {
-        enabled: 'yes',
-        live: 1,
-        targets: {
-          body: {
-            preset: 'x'.repeat(200),
-            options: { size: 'big', keep: 12, ok: true, drop: { nested: 1 }, long: 'y'.repeat(500) }
-          },
-          '': { preset: 'default' },
-          good: { preset: 'card', options: { radius: 8 } }
-        }
-      }
-    }
-  })
-  const style = updated.body.settings.textStyle
-  assert.equal(style.enabled, false, 'a non-boolean flag falls back to the default')
-  assert.equal(style.live, true)
-  assert.equal(style.targets.body.preset.length, 32, 'a preset name is clipped')
-  assert.deepEqual(style.targets.body.options,
-    { size: 'big', keep: 12, ok: true },
-    'short primitives survive; a nested object and an over-long string are dropped')
-  assert.equal(style.targets[''], undefined, 'an empty target key is dropped')
-  assert.deepEqual(style.targets.good, { preset: 'card', options: { radius: 8 } },
-    'a well-formed target is kept verbatim')
-})
 
 await test('a segment with no prose in it is skipped, not translated', async () => {
   // The tail of a Chinese answer is often just file links. It read as "not
@@ -667,7 +625,7 @@ await test('the settings document survives a reload', async () => {
     void route.handler(request, response)
   })
   await new Promise(resolve => reloadServer.listen(0, '127.0.0.1', resolve))
-  const response = await fetch(`http://127.0.0.1:${reloadServer.address().port}/text-manager/api/settings.get`, {
+  const response = await fetch(`http://127.0.0.1:${reloadServer.address().port}/text-translator/api/settings.get`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: '{}'

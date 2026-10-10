@@ -306,7 +306,6 @@ await test('mounts and loads the settings document', () => {
   assert.ok(textOf(view).includes('cutMode'), 'the granularity control must be on the page')
   assert.ok(textOf(view).includes('cutModeHint'), 'with the measured cost in its hint')
   assert.ok(textOf(view).includes('moduleTranslation'), 'the translation module switch must be labelled')
-  assert.ok(textOf(view).includes('moduleStyle'), 'and so must the style module switch')
 })
 
 await test('the key field starts masked and the reveal control is present', () => {
@@ -362,17 +361,22 @@ await test('the model field still accepts a hand-typed id', async () => {
 
 await test('the auto-expand preference reflects the host and can be toggled', async () => {
   const before = nodes(view).filter(node => node.type === 'input' && node.props.type === 'checkbox')
-  assert.equal(before.length, 7,
-    'translation module, style module, the four translation toggles and the style live switch')
-  assert.equal(before.filter(box => box.props.checked === true).length, 4,
-    'translation module, onlyEnglish, translateProse and the style live switch start on')
-  assert.equal(before[0].props.checked, true, 'the translation module is on')
-  assert.equal(before[1].props.checked, false, 'the style module starts off')
-  const box = before.find(item => item.props.checked === false)
-  box.props.onChange({ target: { checked: true } })
+  assert.equal(before.length, 5,
+    'the module switch and the four translation toggles')
+  assert.equal(before.filter(box => box.props.checked === true).length, 3,
+    'the module, onlyEnglish and translateProse start on')
+  assert.equal(before[0].props.checked, true, 'the module switch comes first')
+  // The module switch, onlyEnglish and translateProse start on, so the first
+  // unchecked box is auto-expand. (Finding it by label does not survive this
+  // harness: the label and its input are siblings in a row it does not parent.)
+  const autoExpand = before.find(item => item.props.checked === false)
+
+  assert.ok(autoExpand !== undefined, 'an unchecked togglable box must exist')
+  assert.equal(autoExpand.props.checked, false, 'auto-expand starts off')
+  autoExpand.props.onChange({ target: { checked: true } })
   view = render()
   const after = nodes(view).filter(node => node.type === 'input' && node.props.type === 'checkbox')
-  assert.equal(after.filter(item => item.props.checked === true).length, 5)
+  assert.equal(after.filter(item => item.props.checked === true).length, 4)
 })
 
 await test('the history toggle exists and reports the stored translation count', () => {
@@ -382,38 +386,7 @@ await test('the history toggle exists and reports the stored translation count',
   assert.ok(textOf(view).includes('translations.json'), 'the store path must be shown')
 })
 
-await test('the style module renders its preview, targets, presets and knobs', () => {
-  const text = textOf(view)
-  assert.ok(text.includes('styleInline'), 'the live-apply switch must be on the page')
-  assert.ok(text.includes('stylePreview'), 'the preview block must be on the page')
-  assert.ok(text.includes('styleTargets'), 'the target list must be on the page')
-  for (const target of ['styleBody', 'styleNarration', 'styleQuote', 'styleCommand', 'styleToolOutput', 'styleUser']) {
-    assert.ok(text.includes(target), `${target} must be rendered`)
-  }
-  assert.ok(text.includes('presetLarge'), 'every preset chip must be rendered')
-  assert.ok(text.includes('presetMarker'), 'including the ones only some targets offer')
-  assert.ok(text.includes('styleResetAll'), 'plus the reset-everything control')
-  assert.ok(!text.includes('knobSize'), 'the knobs stay collapsed until asked for')
-  // Opening one target must reveal its knobs, driven by that target's own list.
-  button(view, 'styleCustomize').props.onClick()
-  view = render()
-  const expanded = textOf(view)
-  assert.ok(expanded.includes('knobSize'), 'the opened target shows its knobs')
-  assert.ok(expanded.includes('knobColor'), 'including the colour palette')
-  assert.ok(expanded.includes('knobBorderSides'), 'and the border switch, which every target has')
-  assert.ok(expanded.includes('sideAll'), 'with its side choices')
-  assert.ok(expanded.includes('styleCollapse'), 'and it can be closed again')
-})
 
-await test('choosing a preset stages it on the style document', () => {
-  const chips = nodes(view).filter(node => node.type === 'button'
-    && typeof node.props.title === 'string' && node.props.title === 'presetLarge')
-  assert.ok(chips.length > 0, 'a preset chip must be clickable')
-  chips[0].props.onClick()
-  view = render()
-  const text = textOf(view)
-  assert.ok(text.includes('styleCustomized'), 'the target must report that it is customized')
-})
 
 await test('the translation self-test runs the real segment pipeline', async () => {
   calls.length = 0

@@ -1,10 +1,4 @@
-# dsh-text-manager bundle patch
-#
-# Applied as a profile bundle layer (through the `dsh.bundle.patch` manifest
-# field). It inserts the one Loader row that owns both halves: the Node half
-# (lib/index.js — settings document + DeepSeek route family) and the browser
-# half (lib/client.js — settings page + the translator), which the client
-# module system discovers from `dsh.client` in package.json.
+# Mount 文本翻译 as its own entry, so it can be enabled and updated on its own.
 - insert:
-    - id: text-manager
-      name: 'dsh-text-manager'
+    - id: text-translator
+      name: dsh-text-translator
