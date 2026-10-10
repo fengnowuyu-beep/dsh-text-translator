@@ -1,6 +1,6 @@
 {
   "name": "dsh-text-manager",
-  "version": "1.6.3",
+  "version": "1.7.0",
   "description": "Two independent modules for DSH conversations: translate English reasoning and interleaved narration into Chinese, and restyle the text inside the conversation · 文本管理器：翻译模块（思考链 + 零散文字）+ 对话内文字样式模块，两者各有独立开关",
   "type": "module",
   "main": "lib/index.js",

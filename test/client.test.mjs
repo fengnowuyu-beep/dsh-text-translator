@@ -86,7 +86,7 @@ const bundle = definition.factory(fakeRequire)
 const internals = bundle.__internals
 assert.ok(internals !== undefined, 'bundle must expose __internals')
 
-const { pickCut, findSentenceEnd, readPropsText, readRowText, Translator, Runner, ROW_KINDS, CUT_MODES, cutModeOf, fenceOpenAfter, STYLESHEET, partOfRow, badgeKeyOf, badgeTitleKeyOf, KNOWN, remember } = internals
+const { pickCut, findSentenceEnd, readPropsText, readRowText, Translator, Runner, ROW_KINDS, CUT_MODES, cutModeOf, fenceOpenAfter, STYLESHEET, partOfRow, badgeKeyOf, badgeTitleKeyOf, translationOnFor, KNOWN, remember } = internals
 /** The companion stylesheet, as shipped. */
 const CSS_TEXT = STYLESHEET
 /** The reasoning kind, whose props matcher the row-access tests exercise. */
@@ -937,6 +937,111 @@ test('the turn last response part is the answer, per turn', () => {
   } finally {
     globalThis.document.querySelectorAll = original
   }
+})
+
+test('the conversation switch overrides the plugin switch in both directions', () => {
+  const on = { enabled: true }
+  const off = { enabled: false }
+  // follows the plugin switch
+  assert.equal(translationOnFor(on, 's1', null), true)
+  assert.equal(translationOnFor(off, 's1', null), false)
+  // 开启 translates while the plugin is off
+  assert.equal(translationOnFor(off, 's1', 'on'), true)
+  // 关闭 stays quiet while the plugin is on
+  assert.equal(translationOnFor(on, 's1', 'off'), false)
+  assert.equal(translationOnFor(on, 's1', 'on'), true)
+  assert.equal(translationOnFor(off, 's1', 'off'), false)
+  // no conversation known: nothing to override with
+  assert.equal(translationOnFor(off, null, 'on'), false)
+  assert.equal(translationOnFor(on, null, 'off'), true)
+  assert.equal(translationOnFor(null, 's1', null), false, 'before settings load, nothing is on')
+})
+
+/**
+ * A harness plus the fields the snapshot path touches, for tests that drive the
+ * per-conversation switch (which publishes and repaints).
+ */
+function sessionHarness() {
+  const translator = harness()
+  translator.subscribers = new Set()
+  translator.rows = new Map()
+  translator.runner = { size: () => 0 }
+  translator.snapshot = null
+  return translator
+}
+
+test('a switched-off conversation asks for nothing and shows nothing', () => {
+  const translator = sessionHarness()
+  translator.sessionId = 's1'
+  translator.sessionMode = 'off'
+  const state = rowState('First paragraph is done.\n\nSecond paragraph is done.')
+  translator.pump(state, false)
+  assert.equal(translator.sent.length, 0, 'no segment may be queued')
+  assert.ok(state.parts.length > 0, 'but the segments are still tracked')
+  assert.deepEqual([...new Set(state.parts.map(part => part.status))], ['skipped'],
+    'settled as skipped, so nothing is left pending')
+  assert.equal(translator.allowsProvider(state), false, 'and the provider is out of reach')
+  assert.equal(translator.translationOn(), false)
+
+  translator.sessionMode = 'on'
+  assert.equal(translator.translationOn(), true)
+  // The harness row is not marked live, so name the reason the provider is allowed.
+  state.live = true
+  assert.equal(translator.allowsProvider(state), true)
+  state.live = false
+  state.requested = true
+  assert.equal(translator.allowsProvider(state), true, 'a user action may always spend')
+})
+
+test('following a switched-off plugin also queues nothing', () => {
+  const translator = sessionHarness()
+  translator.settings = { enabled: false, maxSegmentChars: 1800 }
+  translator.sessionId = 's1'
+  translator.sessionMode = null
+  const state = rowState('First paragraph is done.\n\nSecond paragraph is done.')
+  translator.pump(state, false)
+  assert.equal(translator.sent.length, 0)
+  assert.equal(translator.translationOn(), false)
+})
+
+test('the switch cycles 跟随 → 开启 → 关闭 and paints before the host answers', async () => {
+  const calls = []
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url, body: JSON.parse(init.body) })
+    const mode = JSON.parse(init.body).mode
+    return { ok: true, status: 200, json: async () => ({ ok: true, mode: mode ?? null }) }
+  }
+  const translator = sessionHarness()
+  translator.sessionId = 's1'
+  translator.sessionMode = null
+  await translator.cycleSessionMode()
+  assert.equal(calls[0].body.mode, 'on')
+  assert.equal(translator.sessionMode, 'on')
+  await translator.cycleSessionMode()
+  assert.equal(translator.sessionMode, 'off')
+  await translator.cycleSessionMode()
+  assert.equal(translator.sessionMode, null, 'and back to following')
+  assert.equal(calls[2].body.mode, null)
+})
+
+test('a late answer for a conversation the reader left is ignored', async () => {
+  let release = null
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body)
+    if (body.method === 'session.get') {
+      await new Promise((resolve) => { release = resolve })
+      return { ok: true, status: 200, json: async () => ({ ok: true, mode: 'on' }) }
+    }
+    return { ok: true, status: 200, json: async () => ({ ok: true, mode: null }) }
+  }
+  const translator = sessionHarness()
+  translator.sessionId = 's1'
+  const pending = translator.loadSessionMode()
+  translator.setSession('s2')
+  release?.()
+  await pending
+  assert.equal(translator.sessionMode, null, "s1's switch must not leak into s2")
+  assert.equal(translator.sessionId, 's2')
 })
 
 test('the two kinds carry different badges and tooltips', () => {

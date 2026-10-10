@@ -466,6 +466,51 @@ await test('a short segment is never mistaken for structure', async () => {
   assert.equal(seen.length, 1)
 })
 
+await test('a conversation can override the plugin switch in both directions', async () => {
+  // The point of the per-conversation switch: 开启 keeps translating while the
+  // plugin is off, 关闭 stays quiet while the plugin is on.
+  const id = 'session-abc-123'
+  assert.equal((await call('session.get', { sessionId: id })).body.mode, null, 'absent means follow')
+
+  await call('session.set', { sessionId: id, mode: 'on' })
+  assert.equal((await call('session.get', { sessionId: id })).body.mode, 'on')
+  const table = JSON.parse(readFileSync(join(home, 'text-manager', 'sessions.json'), 'utf8'))
+  assert.equal(table.sessions[id], 'on', 'the choice is persisted for the next run')
+
+  providerScript.length = 0
+  seen.length = 0
+  await call('settings.update', { settings: { enabled: false } })
+  const skipped = await call('translate', { text: 'Let me check the build output first.', sessionId: 'session-other' })
+  assert.equal(skipped.body.skipped, true, 'a conversation that follows an off plugin is skipped')
+  assert.equal(seen.length, 0, 'without asking the provider')
+  const forced = await call('translate', { text: 'Let me check the build output first.', sessionId: id })
+  assert.notEqual(forced.body.skipped, true, 'but the opted-in conversation is translated anyway')
+  assert.match(forced.body.text, /^【译】/)
+  assert.equal(seen.length, 1)
+
+  await call('settings.update', { settings: { enabled: true } })
+  await call('session.set', { sessionId: id, mode: 'off' })
+  seen.length = 0
+  const muted = await call('translate', { text: 'Let me check the build output before the parser.', sessionId: id })
+  assert.equal(muted.body.skipped, true, 'a conversation switched off stays quiet')
+  assert.equal(seen.length, 0)
+  const fresh = await call('translate', { text: 'Let me check the build output before the parser.', sessionId: 'session-other' })
+  assert.notEqual(fresh.body.skipped, true, 'while its neighbours are unaffected')
+
+  await call('session.set', { sessionId: id, mode: null })
+  assert.equal((await call('session.get', { sessionId: id })).body.mode, null, 'and it can go back to following')
+  const cleared = JSON.parse(readFileSync(join(home, 'text-manager', 'sessions.json'), 'utf8'))
+  assert.equal(cleared.sessions[id], undefined)
+})
+
+await test('the per-conversation table refuses junk', async () => {
+  assert.equal((await call('session.set', { sessionId: 'has spaces', mode: 'on' })).status, 400)
+  assert.equal((await call('session.set', { sessionId: 'ok-id', mode: 'maybe' })).status, 400)
+  assert.equal((await call('session.set', { mode: 'on' })).status, 400)
+  assert.equal((await call('session.get', { sessionId: 'not a session' })).body.mode, null,
+    'an unusable id simply follows the plugin switch')
+})
+
 await test('cutMode defaults to balanced and round-trips', async () => {
   assert.equal((await call('settings.get')).body.settings.cutMode, 'balanced')
   assert.equal((await call('settings.update', { settings: { cutMode: 'block' } })).body.settings.cutMode, 'block')
