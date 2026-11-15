@@ -354,6 +354,10 @@ function decider(settings = {}) {
   translator.settings = { enabled: true, includeHistory: false, translateProse: true, maxSegmentChars: 1800, ...settings }
   translator.dirty = new Set()
   translator.rows = new Map()
+  // Queued adoption belongs to the engine ledger; a handler that drops a kind
+  // must be able to empty it.
+  translator.pending = []
+  translator.pendingSet = new WeakSet()
   translator.lastRunningAt = 0
   translator.render = () => {}
   translator.schedule = () => {}
@@ -1221,6 +1225,9 @@ function expander(autoExpand = true) {
   translator.settings = { autoExpand, maxSegmentChars: 1800 }
   translator.rows = new Map()
   translator.dirty = new Set()
+  // Same reason as `decider`: applySettings routes through dropKind.
+  translator.pending = []
+  translator.pendingSet = new WeakSet()
   translator.readerClosed = new WeakSet()
   translator.clickedAt = new WeakMap()
   translator.now = () => Date.now()
@@ -1399,6 +1406,245 @@ test('applySettings re-arms auto-expand when it is switched on', () => {
   engine.applySettings({ enabled: true, apiKeySet: true, autoExpand: true })
   engine.refresh(state)
   assert.deepEqual(log, ['reasoning', 'group', 'turn'], 'turning it on opens the mounted rows again')
+})
+
+// ── pass cost: one transcript index per pass, sliced frames ──────────────────
+//
+// Regression guard for the turn-rail freeze: a jump to an early turn makes DSH
+// mount a whole history in one commit, and this plugin then ran a per-row
+// document-wide query for the part and for the turn fold — rows × DOM work in
+// one frame, which never finished. These checks pin the pass to one index and
+// to a bounded slice of work per frame.
+
+/**
+ * An engine wired for the budgeted pass: no rendering, no scheduling side
+ * effects, and a clock the check owns.
+ * @param options - `nowMs` overrides the frame-budget clock.
+ * @returns a translator instance.
+ */
+function passEngine({ nowMs } = {}) {
+  const engine = Object.create(Translator.prototype)
+  engine.settings = { enabled: true, apiKeySet: true, translateProse: false, autoExpand: true, maxSegmentChars: 1800 }
+  engine.rows = new Map()
+  engine.dirty = new Set()
+  engine.pending = []
+  engine.pendingSet = new WeakSet()
+  engine.readerClosed = new WeakSet()
+  engine.clickedAt = new WeakMap()
+  engine.ticks = 0
+  engine.frame = null
+  engine.now = () => Date.now()
+  engine.nowMs = nowMs ?? (() => 0)
+  engine.schedule = () => {}
+  engine.render = () => {}
+  engine.enqueue = () => {}
+  engine.publish = () => {}
+  engine.label = null
+  engine.destroyed = false
+  engine.lastRunningAt = 0
+  return engine
+}
+
+/** A response flow item for one turn. */
+function turnItem(turn) {
+  const item = {
+    dataset: { chatTurn: String(turn) },
+    getAttribute: () => String(turn),
+    closest: (selector) => (selector === '[data-chat-turn]' ? item : null)
+  }
+  return item
+}
+
+/** A reasoning row inside the given turn's response item. */
+function rowFor(item) {
+  return {
+    isConnected: true,
+    getAttribute: (attribute) => (attribute === 'data-state' ? 'ok' : null),
+    closest: (selector) => {
+      if (selector === '[data-chat-flow-kind="assistant-step"]') return item
+      if (selector === '[data-chat-turn]') return item
+      return null
+    },
+    querySelector: () => null,
+    dispatchEvent: () => true,
+    innerText: ''
+  }
+}
+
+/** A fold control for one turn. */
+function foldFor(turn, log) {
+  return {
+    isConnected: true,
+    getAttribute: (attribute) => (attribute === 'data-turn-process' ? String(turn) : attribute === 'aria-expanded' ? 'false' : null),
+    hasAttribute: () => false,
+    dispatchEvent: () => { log.push('turn'); return true }
+  }
+}
+
+/** Install a before/after pair of document-wide query spys. */
+function spyDocument(counters, catalog) {
+  const originalAll = document.querySelectorAll
+  const originalOne = document.querySelector
+  document.querySelectorAll = (selector) => {
+    counters.all += 1
+    const canned = catalog(selector)
+    return canned === undefined ? originalAll(selector) : canned
+  }
+  document.querySelector = (selector) => {
+    counters.one += 1
+    return originalOne(selector)
+  }
+  return () => {
+    document.querySelectorAll = originalAll
+    document.querySelector = originalOne
+  }
+}
+
+test('one pass reads the transcript index once, not once per row', () => {
+  const total = 300
+  const calls = { all: 0, one: 0 }
+  const items = []
+  const folds = []
+  const log = []
+  for (let turn = 0; turn < total; turn += 1) {
+    items.push(turnItem(turn))
+    folds.push(foldFor(turn, log))
+  }
+  const restore = spyDocument(calls, (selector) => {
+    if (selector.startsWith('[data-chat-flow-kind="assistant-step"]')) return items
+    if (selector === 'button[data-turn-process]') return folds
+    return undefined
+  })
+  try {
+    const engine = passEngine()
+    // A whole history, already tracked and dirty: exactly what one rail jump
+    // leaves behind for the next pass to refresh.
+    for (let turn = 0; turn < total; turn += 1) {
+      const row = rowFor(items[turn])
+      engine.rows.set(row, autoExpandRow(row))
+      engine.dirty.add(row)
+    }
+    engine.flushDirty()
+
+    // One index per pass is exactly two document-wide queries: the response
+    // parts and the turn folds. Per row it used to be one of each.
+    assert.equal(calls.one, 0, `the turn fold must come from the index, saw ${calls.one} per-row queries`)
+    assert.equal(calls.all, 2, `expected one index per pass, saw ${calls.all} document-wide queries`)
+    assert.equal(engine.dirty.size, 0, 'every dirty row was refreshed')
+    assert.equal(
+      [...engine.rows.values()].filter(state => state.part === 'answer').length,
+      total,
+      'the index still decides answer vs narration'
+    )
+  } finally {
+    restore()
+  }
+})
+
+test('adoption rides the same pass index instead of its own scans', () => {
+  const total = 300
+  const calls = { all: 0, one: 0 }
+  const items = []
+  const folds = []
+  const log = []
+  for (let turn = 0; turn < total; turn += 1) {
+    items.push(turnItem(turn))
+    folds.push(foldFor(turn, log))
+  }
+  const restore = spyDocument(calls, (selector) => {
+    if (selector.startsWith('[data-chat-flow-kind="assistant-step"]')) return items
+    if (selector === 'button[data-turn-process]') return folds
+    return undefined
+  })
+  try {
+    const engine = passEngine()
+    for (let turn = 0; turn < total; turn += 1) {
+      engine.queue(rowFor(items[turn]), REASONING_KIND)
+    }
+    engine.flushDirty()
+
+    assert.equal(engine.pending.length, 0, 'every queued row was adopted')
+    assert.equal(engine.rows.size, total)
+    assert.equal(calls.one, 0, 'adoption must not run a per-row fold query either')
+    assert.equal(calls.all, 2, `one index covers adoption and refresh, saw ${calls.all}`)
+    assert.equal(
+      [...engine.rows.values()].filter(state => state.part === 'answer').length,
+      total,
+      'an adopted row is judged from the pass index'
+    )
+  } finally {
+    restore()
+  }
+})
+
+test('a whole history is adopted in slices, never in one frame', () => {
+  const total = 1000
+  let clock = 0
+  const engine = passEngine({ nowMs: () => { clock += 1; return clock } })
+  const item = turnItem(0)
+  for (let index = 0; index < total; index += 1) engine.queue(rowFor(item), REASONING_KIND)
+
+  engine.flushDirty()
+  assert.ok(engine.pending.length > 0, 'the first frame must stop at its budget')
+  assert.ok(engine.rows.size < total, 'a whole history must not be adopted in one frame')
+
+  let frames = 0
+  while ((engine.pending.length > 0 || engine.dirty.size > 0) && frames < 500) {
+    engine.flushDirty()
+    frames += 1
+  }
+  assert.equal(engine.pending.length, 0, 'the queue drains across frames')
+  assert.equal(engine.dirty.size, 0)
+  assert.equal(engine.rows.size, total, 'slicing loses no row')
+})
+
+test('a scan tick adopts new rows without re-dirtying the tracked ones', () => {
+  const engine = passEngine()
+  const tracked = rowFor(turnItem(0))
+  const fresh = rowFor(turnItem(1))
+  engine.rows.set(tracked, autoExpandRow(tracked))
+  const restore = spyDocument({ all: 0, one: 0 }, (selector) => (selector === REASONING_KIND.selector ? [tracked, fresh] : undefined))
+  try {
+    engine.scan()
+    assert.equal(engine.dirty.has(tracked), false, 'the observer owns an already-tracked row')
+    assert.ok(engine.pending.some(item => item.row === fresh), 'the new row is queued for adoption')
+  } finally {
+    restore()
+  }
+})
+
+test('the slow safety pass still refreshes every tracked row', () => {
+  const engine = passEngine()
+  engine.ticks = 9 // the next tick is the tenth, which is the safety pass
+  const tracked = rowFor(turnItem(0))
+  engine.rows.set(tracked, autoExpandRow(tracked))
+  const restore = spyDocument({ all: 0, one: 0 }, (selector) => (selector === REASONING_KIND.selector ? [tracked] : undefined))
+  try {
+    engine.scan()
+    assert.equal(engine.dirty.has(tracked), true, 'a change the observer missed is still picked up')
+  } finally {
+    restore()
+  }
+})
+
+test('an indexed expand clicks a turn fold once, never twice', () => {
+  const log = []
+  const fold = foldFor(3, log)
+  let nowValue = 5000
+  const engine = passEngine()
+  engine.now = () => nowValue
+  const row = rowFor(turnItem(3))
+  const index = { lastByTurn: new Map(), foldsByTurn: new Map([['3', fold]]) }
+
+  engine.expand(row, index)
+  assert.deepEqual(log, ['turn'], 'a closed fold is opened')
+
+  // The click opened it. Even past the cooldown the same index must not toggle
+  // it back: an already-open fold is left alone.
+  fold.getAttribute = (attribute) => (attribute === 'data-turn-process' ? '3' : attribute === 'aria-expanded' ? 'true' : null)
+  nowValue = 50000
+  engine.expand(row, index)
+  assert.deepEqual(log, ['turn'], 'the pass index never closes a fold it opened')
 })
 
 await runAll()
