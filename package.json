@@ -2,6 +2,10 @@
   "name": "dsh-text-translator",
   "version": "1.0.0",
   "description": "Translate English reasoning blocks and the interleaved narration into Chinese as they stream, with a per-conversation switch · 文本翻译：把思考链与思考之间的零散文字自动翻成中文，每个对话可单独开关",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fengnowuyu-beep/dsh-text-translator.git"
+  },
   "type": "module",
   "main": "lib/index.js",
   "exports": {
